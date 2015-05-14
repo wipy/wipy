@@ -15,6 +15,7 @@ Components in this repository:
 - docs/ -- API documentation.
 - hardware/ -- Schematics, and PCB files of the WiPy.
 - micropython/ -- Contains the MicroPython sources used to built the latest WiPy SW release.
+- misc/ -- Miscellaneous stuff like the WiPy logo.
 
 "make" is used to build the software, or "gmake" on BSD-based systems.
 You will also need bash and Python (at least 2.7 or 3.3).
