@@ -1,0 +1,73 @@
+Ultiboard Information Export File
+
+Design Name  : ExpansionV1_2(V1_2) - Parts Centroids
+Report Date  : 18 May 2015
+Report Time  : 22:18
+--------------------------------------------------------------------------------
+
+REFDES        VALUE        SHAPE        X_CENTRE[nm] Y_CENTRE[nm]    ROT SIDE     TYPE    
+
+C1            10uF/10V     CAP0805         -33298000    -21336000     90 TOP      SMD     
+C2            0.1uF/10V    CAP0402         -29742000    -21336000    270 TOP      SMD     
+C3            10uF/10V     CAP0805         -43458000     -2794000     90 TOP      SMD     
+C4            0.1uF/10V    CAP0402         -43108750     -1174750     90 TOP      SMD     
+C5            0.1uF/10V    CAP0402         -34357725     -6343525      0 TOP      SMD     
+C6            0.1uF/10V    CAP0402         -35806250     -8096250    270 TOP      SMD     
+C7            47pF/50V     CAP0402         -38346250      2476500    180 TOP      SMD     
+C8            47pF/50V     CAP0402         -41680000      2476500    180 TOP      SMD     
+C9            0.1uF/10V    CAP0402         -43108750       -63500     90 TOP      SMD     
+C10           10uF/10V     CAP0805         -27868750    -13493750     90 TOP      SMD     
+C11           1uF/10V      CAP0603         -27868750     -7778750     90 TOP      SMD     
+C12           0.1uF/10V    CAP0402         -26757500     -9207500    270 TOP      SMD     
+C13           0.1uF/10V    CAP0402         -26757500    -11430000    270 TOP      SMD     
+D1            LED_GREEN    LED0603_green    -47077500      5715000    180 TOP      SMD     
+D2            LED_GREEN    LED0603_green    -34377500      6985000      0 TOP      SMD     
+D3            LED_RED      LED0603_RED     -32790000      6985000      0 TOP      SMD     
+H1            SK_M3        SK_M3_HOLE      -21360000      4445000      0 TOP      THD     
+H2            SK_M3        SK_M3_HOLE      -49300000    -37147500      0 TOP      THD     
+H3            breakaway    breakaway_center    -12010000    -34500000     90 TOP      THD     
+H4            breakaway    breakaway_center    -12010000    -15250000     90 TOP      THD     
+H5            breakaway    breakaway_center    -12010000      3750000     90 TOP      THD     
+H6            breakaway    breakaway_center    -58760000    -34500000    270 TOP      THD     
+H7            breakaway    breakaway_center    -58760000    -15250000    270 TOP      THD     
+H8            breakaway    breakaway_center    -58760000      3750000    270 TOP      THD     
+J1            HEADER_LEFT_1 SIL14_Longlegs    -46760000    -16510000     90 TOP      THD     
+J2            SSQ-114-03-G-S SIL14_shortlegs    -51840000    -16510000     90 TOP      THD     
+J3            SD-105027-001 MOLEX_SD-105027-001    -31361250    -27394375      0 TOP      SMD     
+J4            HEADER_RIGHT_1 SIL14_Longlegs    -23900000    -16510000     90 TOP      THD     
+J5            SSQ-114-03-G-S SIL14_shortlegs    -18820000    -16510000     90 TOP      THD     
+J6            SIL10        SIL10_            3810000      2540000      0 TOP      THD     
+J7            SIL10        SIL10_            3810000      5080000    180 TOP      THD     
+J8            SIL10        SIL10_            3810000    -36068000      0 TOP      THD     
+J9            HDR1X14      HEADER1X14       -7620000    -16510000    270 TOP      THD     
+J10           2x14_L       2x14_L           11430000    -16510000    270 TOP      THD     
+J11           56way        56way1.27mm       3810000    -17145000    270 TOP      SMD     
+J12           2x14_R       2x14_R           -3810000    -16510000    270 TOP      THD     
+J13           HDR1X14      HEADER1X14       15240000    -16510000    270 TOP      THD     
+J14           14X10_power  Proto14X10Vin3v3gnd    -74470000    -15240000      0 TOP      THD     
+J15           MICROUSB     10118192-0001LF    -40486200      6228700    180 TOP      SMD     
+J16           JST          JST             -28345000      2540000      0 TOP      THD     
+JP3           JUMPER7x2    JUMPER7x2       -41680000    -12700000     90 TOP      THD     
+L1            BLM21PG600SN1D L0805           -35488750      -698500      0 TOP      SMD     
+R1            1K2          RES0402         -48823750      5715000      0 TOP      SMD     
+R2            100k         RES0402         -36262725     -4597275     90 TOP      SMD     
+R3            1K2          RES0402         -34402900      4495800      0 TOP      SMD     
+R4            1K2          RES0402         -34357725     -4279775    180 TOP      SMD     
+R5            27R          RES0402         -39457500      2476500    180 TOP      SMD     
+R6            27R          RES0402         -40568750      2476500    180 TOP      SMD     
+R7            100k         RES0402         -28345000     -5080000     90 TOP      SMD     
+R8            1K2          RES0402         -26598750     -2063750      0 TOP      SMD     
+R9            100k         RES0402         -31361250     -1428750    180 TOP      SMD     
+R10           1K2          RES0402         -36600000    -15398750    270 TOP      SMD     
+R11           2k           RES0402         -34377500    -15398750     90 TOP      SMD     
+R12           10k          RES0402         -36123750    -10318750    180 TOP      SMD     
+R13           1K2          RES0402         -32790000      4603750    180 TOP      SMD     
+R14           115k         RES0402         -30567500     -5080000    270 TOP      SMD     
+R15           392R         RES0402         -32631250    -10953750    180 TOP      SMD     
+R16           56k          RES0402         -31361250     -3492500    180 TOP      SMD     
+S1            TS-1185      TS-1185         -52856000      5721350      0 TOP      SMD     
+T1            FDMA291P     MicroFET2x2     -36346000     -6350000     90 TOP      SMD     
+T2            FDC6333C     SUPERSOT-6      -28980000     -2381250      0 TOP      SMD     
+U1            FT234XD      DFN-12          -39933750      -857250    270 TOP      SMD     
+U2            bq24040      R-PWSON-N10(DSQ)    -35501450    -13125450      0 TOP      SMD     
+U3            TPS2115A     S-PVSON-N8(DRB)    -29932500    -10318750    270 TOP      SMD     
