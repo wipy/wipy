@@ -1,0 +1,27 @@
+ULTIBOARD DRILL REPORT
+
+Design: WiPy(V1_3)
+
+DRILL FILE SETTINGS
+Excellon 2, Absolute, Inch, 2.5 
+
+
+DEFINITION COPPER LAYERS
+Copper Top
+Copper Inner 1
+Copper Inner 2
+Copper Bottom
+
+
+--------------------------------------------------------------------
+
+DRILLFILE                                   LAMINATION
+WiPy(V1_3) - Copper Top-Copper Bottom.drl   Copper Top .. Copper Bottom
+
+TOOL     SIZE   TYPE  COUNT
+   1  0.00787    PTH    284
+   2  0.01500    PTH     14
+   3  0.01200    PTH      1
+   4  0.01181    PTH      5
+   5  0.04016    PTH     28
+   6  0.03900   NPTH      3
