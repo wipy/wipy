@@ -1,6 +1,6 @@
 ULTIBOARD DRILL REPORT
 
-Design: ExpansionV1_2(V1_2)
+Design: ExpansionV1_2_2(V1_2_2)
 
 DRILL FILE SETTINGS
 Excellon 2, Absolute, Inch, 2.5 
@@ -15,15 +15,15 @@ Copper Bottom
 
 --------------------------------------------------------------------
 
-DRILLFILE                                            LAMINATION
-ExpansionV1_2(V1_2) - Copper Top-Copper Bottom.drl   Copper Top .. Copper Bottom
+DRILLFILE                                                LAMINATION
+ExpansionV1_2_2(V1_2_2) - Copper Top-Copper Bottom.drl   Copper Top .. Copper Bottom
 
 TOOL     SIZE   TYPE  COUNT
    1  0.00787    PTH     90
-   2  0.03937    PTH    256
-   3  0.04016    PTH     56
-   4  0.03500    PTH     42
-   5  0.01181    PTH      7
-   6  0.02756   NPTH     30
-   7  0.12520    PTH      2
+   2  0.04016    PTH     56
+   3  0.03937    PTH    256
+   4  0.02756   NPTH     30
+   5  0.12520    PTH      2
+   6  0.03500    PTH     42
+   7  0.01181    PTH      7
    8  0.02756    PTH      2
