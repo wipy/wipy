@@ -159,16 +159,19 @@ class Blynk:
     def __init__ (self, with_wdt=True):
         self.hw_pins = {}
         self.vr_pins = {}
+        self.tweets = []
+        self.emails = []
         self.msg_id = 1
         self.logged_in = False
+        self.pins_configured = False
         self.with_wdt = with_wdt
         self.timeout = None
 
-    def __hw_read (self, *args):
+    def __format_msg (self, msg_type, *args):
         # convert params to string and join using \0
         data = bytes('\0'.join(map(str, args)), 'ascii')
         # prepend the hw command header
-        return pack_header(MSG_HW, self.__new_msg_id(), len(data)) + data
+        return pack_header(msg_type, self.__new_msg_id(), len(data)) + data
 
     def __handle_hw (self, data):
         params = data.split(b'\0')
@@ -178,41 +181,44 @@ class Blynk:
         elif cmd == b'pm':
             pairs = zip(params[0::2], params[1::2])
             for (pin, mode) in pairs:
+                print ("New pin config {:} {:}".format(pin, mode))
                 if mode != b'in' and mode != b'out' and mode != b'pu' and mode != b'pd':
                     raise ValueError("Unknown pin %s mode: %s" % (pin, mode))
                 self.hw_pins[pin] = HwPin(pin, mode, mode)
-        elif cmd == b'dw':
-            pin = params.pop(0)
-            val = int(params.pop(0))
-            self.hw_pins[pin].digitalWrite(val)
-        elif cmd == b'aw':
-            pin = params.pop(0)
-            val = int(params.pop(0))
-            self.hw_pins[pin].analogWrite(val)
-        elif cmd == b'dr':
-            pin = params.pop(0)
-            val = self.hw_pins[pin].digitalRead()
-            self.conn.send(self.__hw_read('dw', pin, val))
-        elif cmd == b'ar':
-            pin = params.pop(0)
-            val = self.hw_pins[pin].analogRead()
-            self.conn.send(self.__hw_read('aw', pin, val))
+            self.pins_configured = True
         elif cmd == b'vw':
-            pin = int(params.pop(0))
-            if pin in self.vr_pins:
-                self.vr_pins[pin](pin, params)
-            else:
-                print ("Warning: Virtual write to unregistered pin %d" % pin)
+                pin = int(params.pop(0))
+                if pin in self.vr_pins:
+                    self.vr_pins[pin](pin, params)
+                else:
+                    print ("Warning: Virtual write to unregistered pin %d" % pin)
         elif cmd == b'vr':
-            pin = int(params.pop(0))
-            if pin in self.vr_pins:
-                val = self.vr_pins[pin](pin)
+                pin = int(params.pop(0))
+                if pin in self.vr_pins:
+                    val = self.vr_pins[pin](pin)
+                else:
+                    print ("Warning: Virtual read from unregistered pin %d" % pin)
+                    val = 'Error'
+                self.conn.send(self.__format_msg(MSG_HW, 'vw', pin, val))
+        elif self.pins_configured:
+            if cmd == b'dw':
+                pin = params.pop(0)
+                val = int(params.pop(0))
+                self.hw_pins[pin].digitalWrite(val)
+            elif cmd == b'aw':
+                pin = params.pop(0)
+                val = int(params.pop(0))
+                self.hw_pins[pin].analogWrite(val)
+            elif cmd == b'dr':
+                pin = params.pop(0)
+                val = self.hw_pins[pin].digitalRead()
+                self.conn.send(self.__format_msg(MSG_HW, 'dw', pin, val))
+            elif cmd == b'ar':
+                pin = params.pop(0)
+                val = self.hw_pins[pin].analogRead()
+                self.conn.send(self.__format_msg(MSG_HW, 'aw', pin, val))
             else:
-                print ("Warning: Virtual read from unregistered pin %d" % pin)
-                val = 'Error'
-            self.conn.send(self.__hw_read('vw', pin, val))
-        else:
-            raise ValueError("Unknown message cmd: %s" % cmd)
+                raise ValueError("Unknown message cmd: %s" % cmd)
 
     def __new_msg_id(self):
         self.msg_id += 1
@@ -236,6 +242,8 @@ class Blynk:
         self.__settimeout (timeout)
         while (True):
             self.__send_heartbeat()
+            self.__send_tweets()
+            self.__send_emails()
             try:
                 rx_data += self.conn.recv(r_length)
             except socket.timeout:
@@ -244,6 +252,25 @@ class Blynk:
             r_length = length - len(rx_data)
             if not r_length:
                 return rx_data
+
+    def __send_tweets (self):
+        if self.tweets and self.logged_in:
+            print ('Sending tweet')
+            self.conn.send(self.__format_msg(MSG_TWEET, self.tweets.pop(0)))
+
+    def __send_emails (self):
+        if self.emails and self.logged_in:
+            print ('Sending email')
+            email = self.emails.pop(0)
+            self.conn.send(self.__format_msg(MSG_EMAIL, email[0], email[1], email[2]))
+
+    def tweet (self, msg):
+        print ('Tweet appended')
+        self.tweets.append(msg)
+
+    def email (self, to, subject, body):
+        print ('Email appended')
+        self.emails.append((to, subject, body))
 
     def registerVirtualPin (self, pin, handler):
         if isinstance(pin, int) and pin in range (0, MAX_VIRTUAL_PINS):

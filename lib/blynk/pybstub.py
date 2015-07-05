@@ -30,12 +30,12 @@ class Pin:
     INT_RISING_FALLING  = 'INT_RISING_FALLING'
     INT_LOW_LEVEL       = 'INT_LOW_LEVEL'
     INT_HIGH_LEVEL      = 'INT_HIGH_LEVEL'
-    
+
     # pin strength
     S2MA    = 'S2MA'
     S4MA    = 'S4MA'
     S6MA    = 'S6MA'
-    
+
     def __init__ (self, pin, af, mode=OUT, type=STD, strength=S4MA):
         self.pin = pin
         self.val = 0
@@ -44,9 +44,9 @@ class Pin:
     def value (self, val=None):
         if val is not None:
             self.val = val
-            pyblog ('[Pin] %s value set to %d' % (self.pin, val))
+            pyblog ('[Pin] %s value set to %d' % (self.pin, self.val))
         else:
-            pyblog ('[Pin] %s value is %d' % (self.pin, val))
+            pyblog ('[Pin] %s value is %d' % (self.pin, self.val))
             return self.val
 
 
@@ -99,10 +99,12 @@ class ADC:
 
     def __init__ (self, channel):
         self.channel = channel
+        self.val = 1204
         pyblog ('[ADC] Init channel %d' % channel)
 
     def read (self):
-        pyblog ('[ADC] Read channel %d value' % channel)
+        pyblog ('[ADC] Read channel %d value' % self.channel)
+        return self.val
 
 
 """
@@ -112,7 +114,7 @@ class WDT:
 
     def __init__ (self, timeout):
         self.timeout = timeout
-        pyblog ('[WDT] Init with %d timeout' % timeout)
+        pyblog ('[WDT] Init with %d timeout' % self.timeout)
 
     def kick (self):
         pyblog ('[WDT] Watchdog kicked just now')
