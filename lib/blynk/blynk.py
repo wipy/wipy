@@ -84,7 +84,8 @@ MIN_SOCK_TIMEOUT = const(1) # 1 second
 MAX_SOCK_TIMEOUT = const(5) # 5 seconds
 WDT_TIMEOUT = const(9000) # 9 seconds
 RECONNECT_DELAY = const(1) # 1 second
-USER_TASK_PERIOD_MS_RES = const(10) # 10 ms
+USER_TASK_PERIOD_MS_RES = const(50) # 50 ms
+IDLE_TIME_MS = const(5) # 5 ms
 
 # virtual pins
 MAX_VIRTUAL_PINS = const(32)
@@ -214,8 +215,8 @@ class VirtualPin:
 
 class Blynk:
 
-    def __init__(self, wdt=True):
-        self.__wdt = wdt
+    def __init__(self):
+        self.__wdt = None
         self.__vr_pins = {}
         self.__connect = False
         self.__user_task = None
@@ -331,7 +332,7 @@ class Blynk:
             self.__tx_count = 0
             # kick the watchdog
             if self.__wdt:
-                self.wdt.kick()
+                self.__wdt.kick()
         # send a new heart beat
         if c_time - self.__hb_time >= HB_FREQUENCY and self.state == AUTHENTICATED:
             self.__hb_time = c_time
@@ -373,7 +374,7 @@ class Blynk:
     def disconnect(self):
         self.__connect = False
 
-    def run(self, token, server='cloud.blynk.cc', port=8442, connect=True):
+    def run(self, token, server='cloud.blynk.cc', port=8442, connect=True, enable_wdt=True):
         self.__start_time = pyb.millis()
         self.__connect = connect
         self.__hw_pins = {}
@@ -388,12 +389,14 @@ class Blynk:
         self.__user_task_millis = pyb.millis()
         self.state = DISCONNECTED
 
-        if self.__wdt:
-            self.wdt = pyb.WDT(WDT_TIMEOUT)
+        if enable_wdt:
+            self.__wdt = pyb.WDT(WDT_TIMEOUT)
 
         while True:
             while self.state != AUTHENTICATED:
                 self.__run_user_task()
+                if self.__wdt:
+                    self.__wdt.kick()
                 if self.__connect:
                     try:
                         print('Connecting to %s:%d' % (server, port))
@@ -426,7 +429,6 @@ class Blynk:
                     print('Access granted, happy Blynking!')
                 else:
                     self.__start_time = sleep_from_until(self.__start_time, USER_TASK_PERIOD_MS_RES)
-                    print(self.__start_time)
 
             while self.__connect:
                 data = self.__receive(HDR_LEN, NON_BLOCK_SOCKET)
@@ -450,7 +452,7 @@ class Blynk:
                         self.__close_connection('unknown message type %d' % msg_type)
                         break
                 else:
-                    self.__start_time = sleep_from_until(self.__start_time, USER_TASK_PERIOD_MS_RES)
+                    self.__start_time = sleep_from_until(self.__start_time, IDLE_TIME_MS)
                 if not self.__server_is_alive():
                     self.__close_connection('Blynk server is offline')
                     break
