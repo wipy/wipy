@@ -127,7 +127,7 @@ class HardwarePin:
     def __init__(self, pin_num, mode, pull):
         # __mode can be either b'in' or b'out'
         # __pull can be one of b'pu, b'pd' or None
-        # __function can be one of 'dig', 'ana', '__pwm' or None
+        # __function can be one of 'dig', 'ana', 'pwm' or None
         self.__mode = mode
         self.__pull = pull
         self.__function = ''
@@ -226,7 +226,7 @@ class Blynk:
     def __format_msg(self, msg_type, *args):
         # convert params to string and join using \0
         data = bytes('\0'.join(map(str, args)), 'ascii')
-        # prepend the hw command header
+        # prepend the msg header
         return pack_header(msg_type, self.__new_msg_id(), len(data)) + data
 
     def __handle_hw(self, data):
