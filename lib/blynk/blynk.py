@@ -8,7 +8,7 @@ and a valid token string.
 Example usage:
 
     import blynk
-    blk = blynk.Blynk()
+    blk = blynk.Blynk('e7c0a812347f12345f6ae8403abcdefg')
 
     # to register virtual pins first define a handler
     def vrhandler (request):
@@ -29,7 +29,7 @@ Example usage:
     blk.registerUserTask (my_user_task, period_multiple_of_10_ms)
 
     # start Blynk (this call should never return)
-    blk.run('e7c0a812347f12345f6ae8403abcdefg')
+    blk.run()
 
 The `request` object passed to the virtual handler contains the
 following attributes:
@@ -88,6 +88,10 @@ RECONNECT_DELAY = const(1) # 1 second
 USER_TASK_PERIOD_MS_RES = const(50) # 50 ms
 IDLE_TIME_MS = const(5) # 5 ms
 
+# retransmit options
+RETRANSMIT_DELAY = const(2)
+MAX_TX_RETRIES = const(3)
+
 # virtual pins
 MAX_VIRTUAL_PINS = const(32)
 
@@ -97,7 +101,7 @@ CONNECTING = 1
 AUTHENTICATING = 2
 AUTHENTICATED = 3
 
-# socket errno (define 'em here to save RAM)
+# socket errno (defined here to save RAM)
 EAGAIN = const(11)
 
 
@@ -216,12 +220,19 @@ class VirtualPin:
 
 class Blynk:
 
-    def __init__(self):
+    def __init__(self, token, server='cloud.blynk.cc', port=8442, connect=True, enable_wdt=True):
         self.__wdt = None
         self.__vr_pins = {}
         self.__connect = False
         self.__user_task = None
         self.__user_task_period = 0
+        self.__token = token
+        if isinstance (self.__token, str):
+            self.__token = bytes(token, 'ascii')
+        self.__server = server
+        self.__port = port
+        self.__connect = connect
+        self.__wdt = enable_wdt
         self.state = DISCONNECTED
 
     def __format_msg(self, msg_type, *args):
@@ -234,6 +245,7 @@ class Blynk:
         params = data.split(b'\0')
         cmd = params.pop(0)
         if cmd == b'info':
+            # TODO
             pass
         elif cmd == b'pm':
             pairs = zip(params[0::2], params[1::2])
@@ -308,14 +320,18 @@ class Blynk:
 
     def __send(self, data):
         if self.__tx_count < BLYNK_MAX_MSGS_PER_SEC:
-            self.__tx_count += 1
-            while (True):
+            retries = 0
+            while retries <= MAX_TX_RETRIES:
                 try:
                     self.conn.send(data)
+                    self.__tx_count += 1
                     break
                 except socket.error as er:
                     if er.args[0] != EAGAIN:
                         raise
+                    else:
+                        pyb.delay(RETRANSMIT_DELAY)
+                        retries += 1
 
     def __close_connection(self, emsg=None):
         self.conn.close()
@@ -375,9 +391,9 @@ class Blynk:
     def disconnect(self):
         self.__connect = False
 
-    def run(self, token, server='cloud.blynk.cc', port=8442, connect=True, enable_wdt=True):
+    def run(self):
         self.__start_time = pyb.millis()
-        self.__connect = connect
+        self.__user_task_millis = self.__start_time
         self.__hw_pins = {}
         self.__rx_data = b''
         self.__msg_id = 1
@@ -385,10 +401,9 @@ class Blynk:
         self.__timeout = None
         self.__tx_count = 0 # counter to avoid flooding
         self.__m_time = 0 # time mark to avoid flooding
-        self.__user_task_millis = pyb.millis()
         self.state = DISCONNECTED
 
-        if enable_wdt:
+        if self.__wdt:
             self.__wdt = pyb.WDT(WDT_TIMEOUT)
 
         while True:
@@ -398,21 +413,19 @@ class Blynk:
                     self.__wdt.kick()
                 if self.__connect:
                     try:
-                        print('Connecting to %s:%d' % (server, port))
+                        print('Connecting to %s:%d' % (self.__server, self.__port))
                         self.conn = socket.socket()
                         self.state = CONNECTING
-                        self.conn.connect(socket.getaddrinfo(server, port)[0][4])
+                        self.conn.connect(socket.getaddrinfo(self.__server, self.__port)[0][4])
                     except:
                         self.__close_connection('connection to the Blynk servers failed!')
                         continue
 
                     # authenticate
                     self.state = AUTHENTICATING
-                    hdr = pack_header(MSG_LOGIN, self.__new_msg_id(), len(token))
-                    if isinstance (token, str):
-                        token = bytes(token, 'ascii')
+                    hdr = pack_header(MSG_LOGIN, self.__new_msg_id(), len(self.__token))
                     print('Blynk connection successful, authenticating...')
-                    self.conn.send(hdr + token)
+                    self.conn.send(hdr + self.__token)
                     data = self.__receive(HDR_LEN, timeout=MAX_SOCK_TIMEOUT)
                     if not data:
                         self.__close_connection('Blynk authentication timed out')
@@ -429,9 +442,10 @@ class Blynk:
                 else:
                     self.__start_time = sleep_from_until(self.__start_time, USER_TASK_PERIOD_MS_RES)
 
-            # new connection, reset the heart beat variables
+            # new connection, reset the heart beat variables and the tx_count
             self.__hb_time = 0
             self.__last_hb_id = 0
+            self.__tx_count = 0
             while self.__connect:
                 data = self.__receive(HDR_LEN, NON_BLOCK_SOCKET)
                 if data:
@@ -460,7 +474,7 @@ class Blynk:
                     break
                 self.__run_user_task()
 
-            # means that the disconenction was requested by the user
+            # if we got here it means that a disconenction was requested by the user
             if not self.__connect:
                 self.__close_connection()
                 print('Blynk disconnection requested by the user')
