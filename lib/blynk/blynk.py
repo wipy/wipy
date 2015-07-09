@@ -318,8 +318,8 @@ class Blynk:
         else:
             return b''
 
-    def __send(self, data):
-        if self.__tx_count < BLYNK_MAX_MSGS_PER_SEC:
+    def __send(self, data, send_anyway = False):
+        if self.__tx_count < BLYNK_MAX_MSGS_PER_SEC or send_anyway:
             retries = 0
             while retries <= MAX_TX_RETRIES:
                 try:
@@ -357,7 +357,7 @@ class Blynk:
             if c_time - self.__hb_time >= HB_PERIOD and self.state == AUTHENTICATED:
                 self.__hb_time = c_time
                 self.__last_hb_id = self.__new_msg_id()
-                self.conn.send(pack_header(MSG_PING, self.__last_hb_id, 0))
+                self.__send(pack_header(MSG_PING, self.__last_hb_id, 0), True)
         return True
 
     def __run_user_task(self):
@@ -425,7 +425,7 @@ class Blynk:
                     self.state = AUTHENTICATING
                     hdr = pack_header(MSG_LOGIN, self.__new_msg_id(), len(self.__token))
                     print('Blynk connection successful, authenticating...')
-                    self.conn.send(hdr + self.__token)
+                    self.__send(hdr + self.__token, True)
                     data = self.__receive(HDR_LEN, timeout=MAX_SOCK_TIMEOUT)
                     if not data:
                         self.__close_connection('Blynk authentication timed out')
@@ -459,7 +459,7 @@ class Blynk:
                             self.__last_hb_id = 0
                     elif msg_type == MSG_PING:
                         # got ping, send pong
-                        self.conn.send(pack_header(MSG_RSP, msg_id, STATUS_SUCCESS))
+                        self.__send(pack_header(MSG_RSP, msg_id, STATUS_SUCCESS), True)
                     elif msg_type == MSG_HW or msg_type == MSG_BRIDGE:
                         data = self.__receive(msg_len, MIN_SOCK_TIMEOUT)
                         if data:
