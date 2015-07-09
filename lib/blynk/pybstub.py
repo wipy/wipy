@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Stub of the pyb module
+Stub of the pyb module, useful to run the Blynk client using CPython.
 """
 
 import time

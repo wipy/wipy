@@ -12,12 +12,12 @@ Example usage:
 
     # to register virtual pins first define a handler
     def vrhandler (request):
-        if request.type == blynk.VirtualRequest.READ:
+        if request.type == blynk.VrRequest.READ:
             # do some stuff
 
     # create the virtual pin and register it
-    vrpin = blynk.VirtualPin(0, vrhandler)
-    blk.registerVirtualPin(vrpin)
+    vrpin = blynk.VrPin(0, vrhandler)
+    blk.registerVrPin(vrpin)
 
     # a user task the will be called periodically can also
     # be registered
@@ -34,7 +34,7 @@ Example usage:
 The `request` object passed to the virtual handler contains the
 following attributes:
     - `pin`: the pin number
-    - `type`: can be either `VirtualRequest.READ` or `VirtualRequest.WRITE`
+    - `type`: can be either `VrRequest.READ` or `VrRequest.WRITE`
     - `args`: list of arguments passed to a virtual write, equals `None` 
            in the case of a virtual read.
 """
@@ -60,25 +60,13 @@ MSG_EMAIL = const(13)
 MSG_BRIDGE = const(15)
 MSG_HW = const(20)
 
-STATUS_SUCCESS = const(200)
-STATUS_QUOTA_LIMIT = const(1)
-STATUS_ILLEGAL_COMMAND = const(2)
-STATUS_NOT_REGISTERED = const(3)
-STATUS_ALREADY_REGISTERED = const(4)
-STATUS_NOT_AUTHENTICATED = const(5)
-STATUS_NOT_ALLOWED = const(6)
-STATUS_NO_CONNECTION = const(7)
-STATUS_NO_ACTIVE_DASHBOARD = const(8)
-STATUS_INVALID_TOKEN = const(9)
-STATUS_DEVICE_WENT_OFFLINE = const(10)
-STATUS_ALREADY_LOGGED_IN = const(11)
-STATUS_TIMEOUT = const(16)
+STA_SUCCESS = const(200)
 
 HB_PERIOD = const(10)
 NON_BLOCK_SOCKET = const(0)
 MIN_SOCK_TIMEOUT = const(1) # 1 second
 MAX_SOCK_TIMEOUT = const(5) # 5 seconds, must be < HB_PERIOD
-WDT_TIMEOUT = const(9000) # 9 seconds
+WDT_TIMEOUT = const(10000) # 10 seconds
 RECONNECT_DELAY = const(1) # 1 second
 USER_TASK_PERIOD_RES = const(50) # 50 ms
 IDLE_TIME_MS = const(5) # 5 ms
@@ -100,25 +88,21 @@ def pack_header(type, id, ls):
     return b''.join([bytes([type]), bytes([(id >> 8) & 0xff]), bytes([id & 0xff]), 
                      bytes([(ls >> 8) & 0xff]), bytes([ls & 0xff])])
 
-
 def unpack_header(hdr):
     return hdr[0], (int(hdr[1]) << 8) + hdr[2], (int(hdr[3]) << 8) + hdr[4]
-
 
 def sleep_from_until (start, delay):
     while pyb.elapsed_millis(start) < delay:
         pyb.Sleep.idle()
     return start + delay
 
+class HwPin:
+    __ADCMap = {'GPIO2': 1, 'GPIO3': 2, 'GPIO4': 3, 'GPIO5': 4}
+    __PWMMap = {'GPIO9': 3, 'GPIO10': 3, 'GPIO11': 3, 'GPIO24': 5, 'GPIO25': 9}
+    __TimerMap = {'GPIO9': (3, pyb.Timer.B), 'GPIO10': (4, pyb.Timer.A), 'GPIO11': (4, pyb.Timer.B), 
+                  'GPIO24': (1, pyb.Timer.A), 'GPIO25': (2, pyb.Timer.A)}
 
-class HardwarePin:
-
-    __ADCPinMap = {'GPIO2': 1, 'GPIO3': 2, 'GPIO4': 3, 'GPIO5': 4}
-    __PWMPinMap = {'GPIO9': 3, 'GPIO10': 3, 'GPIO11': 3, 'GPIO24': 5, 'GPIO25': 9}
-    __TimerPinMap = {'GPIO9': (3, pyb.Timer.B), 'GPIO10': (4, pyb.Timer.A), 'GPIO11': (4, pyb.Timer.B), 
-                     'GPIO24': (1, pyb.Timer.A), 'GPIO25': (2, pyb.Timer.A)}
-
-    __HeartBeatPinNum = 25 if 'WiPy' in os.uname().machine else 9
+    __HBPin = 25 if 'WiPy' in os.uname().machine else 9
 
     def __init__(self, pin_num, mode, pull):
         self.__mode = mode
@@ -126,11 +110,10 @@ class HardwarePin:
         self.__function = ''
         self.__pin = None
         self.__adc = None
-        self.__timer = None
         self.__pwm = None
         pin_num = int(pin_num)
         self.__name = 'GPIO' + str(pin_num)
-        if pin_num == HardwarePin.__HeartBeatPinNum:
+        if pin_num == HwPin.__HBPin:
             pyb.HeartBeat().disable()
 
     def __config(self, _duty_cycle=0):
@@ -144,11 +127,11 @@ class HardwarePin:
                 _type = pyb.Pin.STD
             self.__pin = pyb.Pin(self.__name, af=0, mode=_mode, type=_type, strength=pyb.Pin.S6MA)
         elif self.__function == 'ana':
-            self.__adc = pyb.ADC(HardwarePin.__ADCPinMap[self.__name])
+            self.__adc = pyb.ADC(HwPin.__ADCMap[self.__name])
         else:
-            self.__pin = pyb.Pin(self.__name, af=HardwarePin.__PWMPinMap[self.__name], type=pyb.Pin.STD, strength=pyb.Pin.S6MA)
-            self.__timer = pyb.Timer(HardwarePin.__TimerPinMap[self.__name][0], mode=pyb.Timer.PWM)
-            self.__pwm = self.__timer.channel(HardwarePin.__TimerPinMap[self.__name][1], freq=20000, duty_cycle=_duty_cycle)
+            pyb.Pin(self.__name, af=HwPin.__PWMMap[self.__name], type=pyb.Pin.STD, strength=pyb.Pin.S6MA)
+            timer = pyb.Timer(HwPin.__TimerMap[self.__name][0], mode=pyb.Timer.PWM)
+            self.__pwm = timer.channel(HwPin.__TimerMap[self.__name][1], freq=20000, duty_cycle=_duty_cycle)
 
     def digitalRead(self):
         if self.__function != 'dig':
@@ -175,9 +158,7 @@ class HardwarePin:
         else:
             self.__pwm.duty_cycle(value)
 
-
-class VirtualRequest:
-
+class VrRequest:
     READ = 0
     WRITE = 1
 
@@ -187,8 +168,7 @@ class VirtualRequest:
         self.args = args
 
 
-class VirtualPin:
-
+class VrPin:
     def __init__(self, pin, handler):
         if isinstance(pin, int) and pin in range(0, MAX_VIRTUAL_PINS):
             self.pin = pin
@@ -196,17 +176,15 @@ class VirtualPin:
         else:
             raise ValueError('the pin must be an integer between 0 and %d' % (MAX_VIRTUAL_PINS - 1))
 
-    def request (self, request):
+    def request(self, request):
         if request.pin == self.pin:
             if self.__handler:
                 return self.__handler(request)
         else:
             raise ValueError('virtual {:} on pin {:} with pin {:} request'.
-                             format('read' if request.type == VirtualRequest.READ else 'write', request.pin, self.pin))
-
+                             format('read' if request.type == VrRequest.READ else 'write', request.pin, self.pin))
 
 class Blynk:
-
     def __init__(self, token, server='cloud.blynk.cc', port=8442, connect=True, enable_wdt=True):
         self.__wdt = None
         self.__vr_pins = {}
@@ -236,18 +214,18 @@ class Blynk:
             for (pin, mode) in pairs:
                 if mode != b'in' and mode != b'out' and mode != b'pu' and mode != b'pd':
                     raise ValueError("Unknown pin %s mode: %s" % (pin, mode))
-                self.__hw_pins[pin] = HardwarePin(pin, mode, mode)
+                self.__hw_pins[pin] = HwPin(pin, mode, mode)
             self.__pins_configured = True
         elif cmd == b'vw':
                 pin = int(params.pop(0))
                 if pin in self.__vr_pins:
-                    self.__vr_pins[pin].request(VirtualRequest(pin, VirtualRequest.WRITE, params))
+                    self.__vr_pins[pin].request(VrRequest(pin, VrRequest.WRITE, params))
                 else:
                     print("Warning: Virtual write to unregistered pin %d" % pin)
         elif cmd == b'vr':
                 pin = int(params.pop(0))
                 if pin in self.__vr_pins:
-                    val = self.__vr_pins[pin].request(VirtualRequest(pin, VirtualRequest.READ))
+                    val = self.__vr_pins[pin].request(VrRequest(pin, VrRequest.READ))
                 else:
                     print("Warning: Virtual read from unregistered pin %d" % pin)
                     val = 'Error'
@@ -316,14 +294,14 @@ class Blynk:
                         pyb.delay(RETRANSMIT_DELAY)
                         retries += 1
 
-    def __close_connection(self, emsg=None):
+    def __close(self, emsg=None):
         self.conn.close()
         self.state = DISCONNECTED
         time.sleep (RECONNECT_DELAY)
         if emsg:
             print('Error: %s, connection closed' % emsg)
 
-    def __server_is_alive(self):
+    def __server_alive(self):
         c_time = int(time.time())
         if self.__m_time != c_time:
             self.__m_time = c_time
@@ -353,7 +331,7 @@ class Blynk:
         if self.state == AUTHENTICATED:
             self.__send(self.__format_msg(MSG_EMAIL, to, subject, body))
 
-    def registerVirtualPin(self, pin):
+    def registerVrPin(self, pin):
         self.__vr_pins[pin.pin] = pin
 
     def registerUserTask(self, task, ms_period):
@@ -395,7 +373,7 @@ class Blynk:
                         self.state = CONNECTING
                         self.conn.connect(socket.getaddrinfo(self.__server, self.__port)[0][4])
                     except:
-                        self.__close_connection('connection to the Blynk servers failed!')
+                        self.__close('connection to the Blynk servers failed!')
                         continue
 
                     self.state = AUTHENTICATING
@@ -404,12 +382,12 @@ class Blynk:
                     self.__send(hdr + self.__token, True)
                     data = self.__receive(HDR_LEN, timeout=MAX_SOCK_TIMEOUT)
                     if not data:
-                        self.__close_connection('Blynk authentication timed out')
+                        self.__close('Blynk authentication timed out')
                         continue
 
                     msg_type, msg_id, status = unpack_header(data)
-                    if status != STATUS_SUCCESS or msg_id == 0:
-                        self.__close_connection('Blynk authentication failed!')
+                    if status != STA_SUCCESS or msg_id == 0:
+                        self.__close('Blynk authentication failed!')
                         continue
 
                     self.state = AUTHENTICATED
@@ -425,27 +403,27 @@ class Blynk:
                 if data:
                     msg_type, msg_id, msg_len = unpack_header(data)
                     if msg_id == 0:
-                        self.__close_connection('invalid msg id %d' % msg_id)
+                        self.__close('invalid msg id %d' % msg_id)
                         break
                     if msg_type == MSG_RSP:
                         if msg_id == self.__last_hb_id:
                             self.__last_hb_id = 0
                     elif msg_type == MSG_PING:
-                        self.__send(pack_header(MSG_RSP, msg_id, STATUS_SUCCESS), True)
+                        self.__send(pack_header(MSG_RSP, msg_id, STA_SUCCESS), True)
                     elif msg_type == MSG_HW or msg_type == MSG_BRIDGE:
                         data = self.__receive(msg_len, MIN_SOCK_TIMEOUT)
                         if data:
                             self.__handle_hw(data)
                     else:
-                        self.__close_connection('unknown message type %d' % msg_type)
+                        self.__close('unknown message type %d' % msg_type)
                         break
                 else:
                     self.__start_time = sleep_from_until(self.__start_time, IDLE_TIME_MS)
-                if not self.__server_is_alive():
-                    self.__close_connection('Blynk server is offline')
+                if not self.__server_alive():
+                    self.__close('Blynk server is offline')
                     break
                 self.__run_user_task()
 
             if not self.__connect:
-                self.__close_connection()
+                self.__close()
                 print('Blynk disconnection requested by the user')
