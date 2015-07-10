@@ -40,6 +40,7 @@ following attributes:
 """
 
 import socket
+import struct
 import time
 import os
 try:
@@ -49,6 +50,7 @@ except ImportError:
     const = lambda x: x
 
 HDR_LEN = const(5)
+HDR_FMT = "!BHH"
 
 BLYNK_MAX_MSGS_PER_SEC = const(20)
 
@@ -82,14 +84,6 @@ AUTHENTICATING = 2
 AUTHENTICATED = 3
 
 EAGAIN = const(11)
-
-
-def pack_header(type, id, ls):
-    return b''.join([bytes([type]), bytes([(id >> 8) & 0xff]), bytes([id & 0xff]), 
-                     bytes([(ls >> 8) & 0xff]), bytes([ls & 0xff])])
-
-def unpack_header(hdr):
-    return hdr[0], (int(hdr[1]) << 8) + hdr[2], (int(hdr[3]) << 8) + hdr[4]
 
 def sleep_from_until (start, delay):
     while pyb.elapsed_millis(start) < delay:
@@ -202,7 +196,7 @@ class Blynk:
 
     def __format_msg(self, msg_type, *args):
         data = bytes('\0'.join(map(str, args)), 'ascii')
-        return pack_header(msg_type, self.__new_msg_id(), len(data)) + data
+        return struct.pack(HDR_FMT, msg_type, self.__new_msg_id(), len(data)) + data
 
     def __handle_hw(self, data):
         params = data.split(b'\0')
@@ -313,7 +307,7 @@ class Blynk:
             if c_time - self.__hb_time >= HB_PERIOD and self.state == AUTHENTICATED:
                 self.__hb_time = c_time
                 self.__last_hb_id = self.__new_msg_id()
-                self.__send(pack_header(MSG_PING, self.__last_hb_id, 0), True)
+                self.__send(struct.pack(HDR_FMT, MSG_PING, self.__last_hb_id, 0), True)
         return True
 
     def __run_user_task(self):
@@ -373,11 +367,11 @@ class Blynk:
                         self.state = CONNECTING
                         self.conn.connect(socket.getaddrinfo(self.__server, self.__port)[0][4])
                     except:
-                        self.__close('connection to the Blynk servers failed!')
+                        self.__close('connection with the Blynk servers failed')
                         continue
 
                     self.state = AUTHENTICATING
-                    hdr = pack_header(MSG_LOGIN, self.__new_msg_id(), len(self.__token))
+                    hdr = struct.pack(HDR_FMT, MSG_LOGIN, self.__new_msg_id(), len(self.__token))
                     print('Blynk connection successful, authenticating...')
                     self.__send(hdr + self.__token, True)
                     data = self.__receive(HDR_LEN, timeout=MAX_SOCK_TIMEOUT)
@@ -385,9 +379,9 @@ class Blynk:
                         self.__close('Blynk authentication timed out')
                         continue
 
-                    msg_type, msg_id, status = unpack_header(data)
+                    msg_type, msg_id, status = struct.unpack(HDR_FMT, data)
                     if status != STA_SUCCESS or msg_id == 0:
-                        self.__close('Blynk authentication failed!')
+                        self.__close('Blynk authentication failed')
                         continue
 
                     self.state = AUTHENTICATED
@@ -401,7 +395,7 @@ class Blynk:
             while self.__connect:
                 data = self.__receive(HDR_LEN, NON_BLOCK_SOCKET)
                 if data:
-                    msg_type, msg_id, msg_len = unpack_header(data)
+                    msg_type, msg_id, msg_len = struct.unpack(HDR_FMT, data)
                     if msg_id == 0:
                         self.__close('invalid msg id %d' % msg_id)
                         break
@@ -409,7 +403,7 @@ class Blynk:
                         if msg_id == self.__last_hb_id:
                             self.__last_hb_id = 0
                     elif msg_type == MSG_PING:
-                        self.__send(pack_header(MSG_RSP, msg_id, STA_SUCCESS), True)
+                        self.__send(struct.pack(HDR_FMT, MSG_RSP, msg_id, STA_SUCCESS), True)
                     elif msg_type == MSG_HW or msg_type == MSG_BRIDGE:
                         data = self.__receive(msg_len, MIN_SOCK_TIMEOUT)
                         if data:
