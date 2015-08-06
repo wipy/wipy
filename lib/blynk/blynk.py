@@ -91,10 +91,10 @@ def sleep_from_until (start, delay):
     return start + delay
 
 class HwPin:
-    _ADCMap = {'GPIO2': 1, 'GPIO3': 2, 'GPIO4': 3, 'GPIO5': 4}
-    _PWMMap = {'GPIO9': 3, 'GPIO10': 3, 'GPIO11': 3, 'GPIO24': 5, 'GPIO25': 9}
-    _TimerMap = {'GPIO9': (3, pyb.Timer.B), 'GPIO10': (4, pyb.Timer.A), 'GPIO11': (4, pyb.Timer.B),
-                 'GPIO24': (1, pyb.Timer.A), 'GPIO25': (2, pyb.Timer.A)}
+    _ADCMap = {'GP2': 1, 'GP3': 2, 'GP4': 3, 'GP5': 4}
+    _PWMMap = {'GP9': 3, 'GP10': 3, 'GP11': 3, 'GP24': 5, 'GP25': 9}
+    _TimerMap = {'GP9': (3, pyb.Timer.B), 'GP10': (4, pyb.Timer.A), 'GP11': (4, pyb.Timer.B),
+                 'GP24': (1, pyb.Timer.A), 'GP25': (2, pyb.Timer.A)}
 
     _HBPin = 25 if 'WiPy' in os.uname().machine else 9
 
@@ -106,7 +106,7 @@ class HwPin:
         self._adc = None
         self._pwm = None
         pin_num = int(pin_num)
-        self._name = 'GPIO' + str(pin_num)
+        self._name = 'GP' + str(pin_num)
         if pin_num == HwPin._HBPin:
             pyb.HeartBeat().disable()
 
