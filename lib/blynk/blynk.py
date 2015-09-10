@@ -91,7 +91,6 @@ def sleep_from_until (start, delay):
     return start + delay
 
 class HwPin:
-    _ADCMap = {'GP2': 1, 'GP3': 2, 'GP4': 3, 'GP5': 4}
     _PWMMap = {'GP9': 3, 'GP10': 3, 'GP11': 3, 'GP24': 5, 'GP25': 9}
     _TimerMap = {'GP9': (3, pyb.Timer.B), 'GP10': (4, pyb.Timer.A), 'GP11': (4, pyb.Timer.B),
                  'GP24': (1, pyb.Timer.A), 'GP25': (2, pyb.Timer.A)}
@@ -114,16 +113,16 @@ class HwPin:
         if self._function == 'dig':
             _mode = pyb.Pin.OUT if self._mode == b'out' else pyb.Pin.IN
             if self._pull == b'pu':
-                _type = pyb.Pin.STD_PU
+                _pull = pyb.Pin.PULL_UP
             elif self._pull == b'pd':
-                _type = pyb.Pin.STD_PD
+                _pull = pyb.Pin.PULL_DOWN
             else:
-                _type = pyb.Pin.STD
-            self._pin = pyb.Pin(self._name, af=0, mode=_mode, type=_type, strength=pyb.Pin.S6MA)
+                _pull = pyb.Pin.PULL_NONE
+            self._pin = pyb.Pin(self._name, mode=_mode, pull=_pull, drive=pyb.Pin.MED_POWER)
         elif self._function == 'ana':
-            self._adc = pyb.ADC(HwPin._ADCMap[self._name])
+            self._adc = pyb.ADC(self._name)
         else:
-            pyb.Pin(self._name, af=HwPin._PWMMap[self._name], type=pyb.Pin.STD, strength=pyb.Pin.S6MA)
+            pyb.Pin(self._name, mode=pyb.Pin.ALT, pull=pyb.Pin.PULL_NONE, drive=pyb.Pin.MED_POWER, alt=HwPin._PWMMap[self._name])
             timer = pyb.Timer(HwPin._TimerMap[self._name][0], mode=pyb.Timer.PWM)
             self._pwm = timer.channel(HwPin._TimerMap[self._name][1], freq=20000, duty_cycle=duty_cycle)
 
@@ -131,13 +130,13 @@ class HwPin:
         if self._function != 'dig':
             self._function = 'dig'
             self._config()
-        return self._pin.value()
+        return self._pin()
 
     def digital_write(self, value):
         if self._function != 'dig':
             self._function = 'dig'
             self._config()
-        self._pin.value(value)
+        self._pin(value)
 
     def analog_read(self):
         if self._function != 'ana':

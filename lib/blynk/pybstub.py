@@ -33,33 +33,37 @@ class Pin:
     # pin modes
     IN  = 'IN'
     OUT = 'OUT'
+    OPEN_DRAIN = 'OPEN_DRAIN'
+    ALT = 'ALT'
+    ALT_OPEN_DRAIN = 'ALT_OPEN_DRAIN'
 
-    # pin types
-    STD     = 'STD'
-    STD_PU  = 'STD_PU'
-    STD_PD  = 'STD_PD'
-    OD      = 'OD'
-    OD_PU   = 'OD_PU'
-    OD_PD   = 'OD_PD'
+    # pin oull
+    PULL_NONE  = 'PULL_NONE'
+    PULL_UP    = 'PULL_UP'
+    PULL_DOWN  = 'PULL_DOWN'
+
 
     # pin interrupt modes
-    INT_FALLING         = 'INT_FALLING'
-    INT_RISING          = 'INT_RISING'
-    INT_RISING_FALLING  = 'INT_RISING_FALLING'
-    INT_LOW_LEVEL       = 'INT_LOW_LEVEL'
-    INT_HIGH_LEVEL      = 'INT_HIGH_LEVEL'
+    IRQ_FALLING         = 'IRQ_FALLING'
+    IRQ_RISING          = 'IRQ_RISING'
+    IRQ_RISING_FALLING  = 'IRQ_RISING_FALLING'
+    IRQ_LOW_LEVEL       = 'IRQ_LOW_LEVEL'
+    IRQ_HIGH_LEVEL      = 'IRQ_HIGH_LEVEL'
 
-    # pin strength
-    S2MA    = 'S2MA'
-    S4MA    = 'S4MA'
-    S6MA    = 'S6MA'
+    # pin drive
+    LOW_POWER    = 'LOW_POWER'
+    MED_POWER    = 'MED_POWER'
+    HIGH_POWER   = 'HIGH_POWER'
 
-    def __init__(self, pin, af, mode=OUT, type=STD, strength=S4MA):
+    def __init__(self, pin, mode=OUT, pull=PULL_NONE, drive=MED_POWER, alt=-1):
         self.pin = pin
         self.val = 0
-        pyblog ('[Pin] Init %s with af=%s mode=%s type=%s strength=%s' % (pin, af, mode, type, strength))
+        pyblog ('[Pin] Init %s with mode=%s pull=%s drive=%s, alt=%s' % (pin, mode, pull, drive, alt))
 
-    def value(self, val=None):
+    def __call__(self, val=None):
+        self.__set_value(val)
+
+    def __set_value(self, val):
         if val is not None:
             self.val = val
             pyblog ('[Pin] %s value set to %d' % (self.pin, self.val))
@@ -67,6 +71,8 @@ class Pin:
             pyblog ('[Pin] %s value is %d' % (self.pin, self.val))
             return self.val
 
+    def value(self, val=None):
+        self.__set_value(val)
 
 """
 Stub of the pyb.Timer class
@@ -113,15 +119,15 @@ class TimerChannel:
 """
 Stub of the pyb.ADC class
 """
-class ADC:
+class ADC
 
-    def __init__(self, channel):
-        self.channel = channel
+    def __init__(self, pin):
+        self.pin = pin
         self.val = 1204
-        pyblog ('[ADC] Init channel %d' % channel)
+        pyblog ('[ADC] Init pin %s' % pin)
 
     def read(self):
-        pyblog ('[ADC] Read channel %d value' % self.channel)
+        pyblog ('[ADC] Read pin %s value' % self.pin)
         return self.val
 
 
