@@ -44,9 +44,9 @@ import struct
 import time
 import os
 try:
-    import pyb
+    import machine
 except ImportError:
-    import pybstub as pyb
+    import machinestub as machine
     const = lambda x: x
 
 HDR_LEN = const(5)
@@ -86,14 +86,14 @@ AUTHENTICATED = 3
 EAGAIN = const(11)
 
 def sleep_from_until (start, delay):
-    while pyb.elapsed_millis(start) < delay:
-        pyb.Sleep.idle()
+    while time.ticks_diff(start, time.ticks_ms()) < delay:
+        machine.idle()
     return start + delay
 
 class HwPin:
     _PWMMap = {'GP9': 3, 'GP10': 3, 'GP11': 3, 'GP24': 5, 'GP25': 9}
-    _TimerMap = {'GP9': (3, pyb.Timer.B), 'GP10': (4, pyb.Timer.A), 'GP11': (4, pyb.Timer.B),
-                 'GP24': (1, pyb.Timer.A), 'GP25': (2, pyb.Timer.A)}
+    _TimerMap = {'GP9': (3, machine.Timer.B), 'GP10': (4, machine.Timer.A), 'GP11': (4, machine.Timer.B),
+                 'GP24': (1, machine.Timer.A), 'GP25': (2, machine.Timer.A)}
 
     _HBPin = 25 if 'WiPy' in os.uname().machine else 9
 
@@ -102,28 +102,29 @@ class HwPin:
         self._pull = pull
         self._function = ''
         self._pin = None
-        self._adc = None
+        self._apin = None
         self._pwm = None
         pin_num = int(pin_num)
         self._name = 'GP' + str(pin_num)
         if pin_num == HwPin._HBPin:
-            pyb.HeartBeat().disable()
+            machine.HeartBeat().disable()
 
     def _config(self, duty_cycle=0):
         if self._function == 'dig':
-            _mode = pyb.Pin.OUT if self._mode == b'out' else pyb.Pin.IN
+            _mode = machine.Pin.OUT if self._mode == b'out' else machine.Pin.IN
             if self._pull == b'pu':
-                _pull = pyb.Pin.PULL_UP
+                _pull = machine.Pin.PULL_UP
             elif self._pull == b'pd':
-                _pull = pyb.Pin.PULL_DOWN
+                _pull = machine.Pin.PULL_DOWN
             else:
-                _pull = pyb.Pin.PULL_NONE
-            self._pin = pyb.Pin(self._name, mode=_mode, pull=_pull, drive=pyb.Pin.MED_POWER)
+                _pull = None
+            self._pin = machine.Pin(self._name, mode=_mode, pull=_pull, drive=machine.Pin.MED_POWER)
         elif self._function == 'ana':
-            self._adc = pyb.ADC(self._name)
+            adc = machine.ADC(bits=12)
+            self._apin = adc.channel(pin=self._name)
         else:
-            pyb.Pin(self._name, mode=pyb.Pin.ALT, pull=pyb.Pin.PULL_NONE, drive=pyb.Pin.MED_POWER, alt=HwPin._PWMMap[self._name])
-            timer = pyb.Timer(HwPin._TimerMap[self._name][0], mode=pyb.Timer.PWM)
+            machine.Pin(self._name, mode=machine.Pin.ALT, pull=None, drive=machine.Pin.MED_POWER, alt=HwPin._PWMMap[self._name])
+            timer = machine.Timer(HwPin._TimerMap[self._name][0], mode=machine.Timer.PWM)
             self._pwm = timer.channel(HwPin._TimerMap[self._name][1], freq=20000, duty_cycle=duty_cycle)
 
     def digital_read(self):
@@ -142,7 +143,7 @@ class HwPin:
         if self._function != 'ana':
             self._function = 'ana'
             self._config()
-        return self._adc.read()
+        return self._apin()
 
     def analog_write(self, value):
         if self._function != 'pwm':
@@ -283,13 +284,13 @@ class Blynk:
                     if er.args[0] != EAGAIN:
                         raise
                     else:
-                        pyb.delay(RE_TX_DELAY)
+                        time.sleep_ms(RE_TX_DELAY)
                         retries += 1
 
     def _close(self, emsg=None):
         self.conn.close()
         self.state = DISCONNECTED
-        time.sleep (RECONNECT_DELAY)
+        time.sleep(RECONNECT_DELAY)
         if emsg:
             print('Error: %s, connection closed' % emsg)
 
@@ -299,7 +300,7 @@ class Blynk:
             self._m_time = c_time
             self._tx_count = 0
             if self._wdt:
-                self._wdt.kick()
+                self._wdt.feed()
             if self._last_hb_id != 0 and c_time - self._hb_time >= MAX_SOCK_TO:
                 return False
             if c_time - self._hb_time >= HB_PERIOD and self.state == AUTHENTICATED:
@@ -310,7 +311,7 @@ class Blynk:
 
     def _run_task(self):
         if self._task:
-            c_millis = pyb.millis()
+            c_millis = time.ticks_ms()
             if c_millis - self._task_millis >= self._task_period:
                 self._task_millis += self._task_period
                 self._task()
@@ -339,7 +340,7 @@ class Blynk:
         self._do_connect = False
 
     def run(self):
-        self._start_time = pyb.millis()
+        self._start_time = time.ticks_ms()
         self._task_millis = self._start_time
         self._hw_pins = {}
         self._rx_data = b''
@@ -351,13 +352,13 @@ class Blynk:
         self.state = DISCONNECTED
 
         if self._wdt:
-            self._wdt = pyb.WDT(WDT_TO)
+            self._wdt = machine.WDT(timeout=WDT_TO)
 
         while True:
             while self.state != AUTHENTICATED:
                 self._run_task()
                 if self._wdt:
-                    self._wdt.kick()
+                    self._wdt.feed()
                 if self._do_connect:
                     try:
                         print('Connecting to %s:%d' % (self._server, self._port))

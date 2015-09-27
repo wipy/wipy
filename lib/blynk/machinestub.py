@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 
 """
-Stub of the pyb module, useful to run the Blynk client using CPython.
+Stub of the machine module, useful to run the Blynk client using CPython.
 """
 
 import time
+import sys
 
 
 """
-Some common utitlities
+Some common utilities
 """
-
 try:
     float(1)
     floating_point = True
@@ -26,7 +26,7 @@ def pyblog(msg):
 
 
 """
-Stub of the pyb.Pin class
+Stub of the machine.Pin class
 """
 class Pin:
 
@@ -38,10 +38,8 @@ class Pin:
     ALT_OPEN_DRAIN = 'ALT_OPEN_DRAIN'
 
     # pin oull
-    PULL_NONE  = 'PULL_NONE'
     PULL_UP    = 'PULL_UP'
-    PULL_DOWN  = 'PULL_DOWN'
-
+    PULL_DOWM  = 'PULL_DOWN'
 
     # pin interrupt modes
     IRQ_FALLING         = 'IRQ_FALLING'
@@ -55,15 +53,15 @@ class Pin:
     MED_POWER    = 'MED_POWER'
     HIGH_POWER   = 'HIGH_POWER'
 
-    def __init__(self, pin, mode=OUT, pull=PULL_NONE, drive=MED_POWER, alt=-1):
+    def __init__(self, pin, mode=OUT, pull=None, drive=MED_POWER, alt=-1):
         self.pin = pin
         self.val = 0
-        pyblog ('[Pin] Init %s with mode=%s pull=%s drive=%s, alt=%s' % (pin, mode, pull, drive, alt))
+        pyblog ('[Pin] Init %s with mode=%s pull=%s drive=%s, alt=%s' % (pin, mode, pull if pull else 'None', drive, alt))
 
     def __call__(self, val=None):
-        self.__set_value(val)
+        self.__value(val)
 
-    def __set_value(self, val):
+    def __value(self, val):
         if val is not None:
             self.val = val
             pyblog ('[Pin] %s value set to %d' % (self.pin, self.val))
@@ -72,10 +70,10 @@ class Pin:
             return self.val
 
     def value(self, val=None):
-        self.__set_value(val)
+        self.__value(val)
 
 """
-Stub of the pyb.Timer class
+Stub of the machine.Timer class
 """
 class Timer:
 
@@ -117,35 +115,53 @@ class TimerChannel:
 
 
 """
-Stub of the pyb.ADC class
+Stub of the machine.ADC class
 """
-class ADC
+class ADC:
 
-    def __init__(self, pin):
+    def __init__(self, id=0, bits=12):
+        if not id == 0 or not bits == 12:
+            raise ValueError("Cannot create ADC%d with %d bits resolution" % (id, bits))
+        pyblog ('[ADC%d] Init with %d bits' % (id, bits))
+
+    def channel(self, channel=None, pin=None):
+        pyblog ('[ADC] Create channel {} on pin {}'.format(channel, pin))
+        self.channel = ADCChannel(channel, pin)
+        return self.channel
+
+
+class ADCChannel:
+
+    def __init__(self, channel=None, pin=None):
+        self.channel = channel
         self.pin = pin
-        self.val = 1204
-        pyblog ('[ADC] Init pin %s' % pin)
+        self.val = 1024
+        if (channel and pin) or not (channel or pin):
+            raise ValueError("Incorrect ADC channel-pin combination {}-{}".format(channel, pin))
 
-    def read(self):
-        pyblog ('[ADC] Read pin %s value' % self.pin)
+    def __call__(self, val=None):
+        self.value()
+
+    def value(self):
+        pyblog ('[ADCChannel] Read channel {} pin {} value'.format(self.channel, self.pin))
         return self.val
 
 
 """
-Stub of the pyb.WDT class
+Stub of the machine.WDT class
 """
 class WDT:
 
-    def __init__(self, timeout):
+    def __init__(self, id=0, timeout=None):
         self.timeout = timeout
         pyblog ('[WDT] Init with %d timeout' % self.timeout)
 
-    def kick(self):
+    def feed(self):
         pyblog ('[WDT] Watchdog kicked just now')
 
 
 """
-Stub of the pyb.HeartBeat class
+Stub of the machine.HeartBeat class
 """
 class HeartBeat:
 
@@ -158,28 +174,33 @@ class HeartBeat:
     def disable(self):
         pyblog ('[HeartBeat] Disabled')
 
+"""
+Stub of the machine functions
+"""
+def idle():
+    pass
+
+def sleep():
+    pass
+
+def deepsleep():
+    pass
 
 """
-Stub of the pyb.Sleep class
+Time module extensions
 """
-class Sleep:
-    @staticmethod
-    def idle():
-        pass
-
-
-"""
-pyb functions
-"""
-
-def delay(msecs):
+def sleep_ms(msecs):
     if floating_point:
         time.sleep(msecs / 1000)
     else:
         time.sleep(msecs // 1000)
 
-def millis():
+def ticks_ms():
     return int(time.time() * 1000)
 
-def elapsed_millis(start):
-    return millis() - start
+def ticks_diff(start, end):
+    return end - start;
+
+setattr(sys.modules['time'], 'sleep_ms', sleep_ms)
+setattr(sys.modules['time'], 'ticks_ms', ticks_ms)
+setattr(sys.modules['time'], 'ticks_diff', ticks_diff)
