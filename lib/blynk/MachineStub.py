@@ -59,7 +59,7 @@ class Pin:
         pyblog ('[Pin] Init %s with mode=%s pull=%s drive=%s, alt=%s' % (pin, mode, pull if pull else 'None', drive, alt))
 
     def __call__(self, val=None):
-        self.__value(val)
+        return self.__value(val)
 
     def __value(self, val):
         if val is not None:
@@ -70,7 +70,7 @@ class Pin:
             return self.val
 
     def value(self, val=None):
-        self.__value(val)
+        return self.__value(val)
 
 """
 Stub of the machine.Timer class
@@ -135,15 +135,15 @@ class ADCChannel:
     def __init__(self, channel=None, pin=None):
         self.channel = channel
         self.pin = pin
-        self.val = 1024
+        self.val = 128
         if (channel and pin) or not (channel or pin):
             raise ValueError("Incorrect ADC channel-pin combination {}-{}".format(channel, pin))
 
     def __call__(self, val=None):
-        self.value()
+        return self.value()
 
     def value(self):
-        pyblog ('[ADCChannel] Read channel {} pin {} value'.format(self.channel, self.pin))
+        pyblog ('[ADCChannel] Read channel {} pin {} value {}'.format(self.channel, self.pin, self.val))
         return self.val
 
 

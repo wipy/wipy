@@ -1,42 +1,70 @@
 #!/usr/bin/env python3
 
 """
-Micro Python library that brings out-of-the-box Blynk support to 
-the WiPy. Requires a previously established internet connection 
+Micro Python library that brings out-of-the-box Blynk support to
+the WiPy. Requires a previously established internet connection
 and a valid token string.
 
 Example usage:
 
-    import blynk
-    blk = blynk.Blynk('e7c0a812347f12345f6ae8403abcdefg')
+    import BlynkLib
+    import time
+
+    blynk = BlynkLib.Blynk('08a46fbc7f57407995f576f3f84c3f72')
 
     # to register virtual pins first define a handler
-    def vrhandler (request):
-        if request.type == blynk.VrRequest.READ:
-            # do some stuff
+    def v0_handler(request):
+        if request.type == BlynkLib.VrRequest.READ:
+            return time.ticks_ms() // 1000
 
     # create the virtual pin and register it
-    vrpin = blynk.VrPin(0, vrhandler)
-    blk.register_virtual_pin(vrpin)
+    vrpin = BlynkLib.VrPin(0, v0_handler)
+    blynk.register_virtual_pin(vrpin)
 
-    # a user task the will be called periodically can also
-    # be registered
+    # register the task running every 3 sec
+    # (period must be a multiple of 50 ms)
     def my_user_task():
         # do any non-blocking operations
+        print("Action")
 
-    # register the task and specify the period which
-    # must be a multiple of 50 ms
-    blk.register_user_task(my_user_task, period_multiple_of_50_ms)
+    blynk.register_user_task(my_user_task, 3000)
 
     # start Blynk (this call should never return)
-    blk.run()
+    blynk.run()
 
 The `request` object passed to the virtual handler contains the
 following attributes:
-    - `pin`: the pin number
+    - `pin` : the pin number as an integer
     - `type`: can be either `VrRequest.READ` or `VrRequest.WRITE`
-    - `args`: list of arguments passed to a virtual write, equals `None` 
-           in the case of a virtual read.
+    - `args`: the list of arguments passed to a virtual write. It's always
+              `None` in the case of a virtual read.
+
+-----------------------------------------------------------------------------
+
+This file is part of the Micro Python project, http://micropython.org/
+
+The MIT License (MIT)
+
+Copyright (c) 2015 Daniel Campora
+Copyright (c) 2015 Volodymyr Shymanskyy
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 """
 
 import socket
@@ -46,7 +74,7 @@ import os
 try:
     import machine
 except ImportError:
-    import machinestub as machine
+    import MachineStub as machine
     const = lambda x: x
 
 HDR_LEN = const(5)
@@ -92,8 +120,11 @@ def sleep_from_until (start, delay):
 
 class HwPin:
     _PWMMap = {'GP9': 3, 'GP10': 3, 'GP11': 3, 'GP24': 5, 'GP25': 9}
-    _TimerMap = {'GP9': (3, machine.Timer.B), 'GP10': (4, machine.Timer.A), 'GP11': (4, machine.Timer.B),
-                 'GP24': (1, machine.Timer.A), 'GP25': (2, machine.Timer.A)}
+    _TimerMap = { 'GP9': (3, machine.Timer.B),
+                 'GP10': (4, machine.Timer.A),
+                 'GP11': (4, machine.Timer.B),
+                 'GP24': (1, machine.Timer.A),
+                 'GP25': (2, machine.Timer.A)}
 
     _HBPin = 25 if 'WiPy' in os.uname().machine else 9
 
@@ -111,10 +142,10 @@ class HwPin:
 
     def _config(self, duty_cycle=0):
         if self._function == 'dig':
-            _mode = machine.Pin.OUT if self._mode == b'out' else machine.Pin.IN
-            if self._pull == b'pu':
+            _mode = machine.Pin.OUT if self._mode == 'out' else machine.Pin.IN
+            if self._pull == 'pu':
                 _pull = machine.Pin.PULL_UP
-            elif self._pull == b'pd':
+            elif self._pull == 'pd':
                 _pull = machine.Pin.PULL_DOWN
             else:
                 _pull = None
@@ -198,24 +229,25 @@ class Blynk:
         return struct.pack(HDR_FMT, msg_type, self._new_msg_id(), len(data)) + data
 
     def _handle_hw(self, data):
-        params = data.split(b'\0')
+        params = list(map(lambda x: x.decode('ascii'), data.split(b'\0')))
         cmd = params.pop(0)
-        if cmd == b'info':
+        if cmd == 'info':
             pass
-        elif cmd == b'pm':
+        elif cmd == 'pm':
             pairs = zip(params[0::2], params[1::2])
             for (pin, mode) in pairs:
-                if mode != b'in' and mode != b'out' and mode != b'pu' and mode != b'pd':
+                pin = int(pin)
+                if mode != 'in' and mode != 'out' and mode != 'pu' and mode != 'pd':
                     raise ValueError("Unknown pin %s mode: %s" % (pin, mode))
                 self._hw_pins[pin] = HwPin(pin, mode, mode)
             self._pins_configured = True
-        elif cmd == b'vw':
+        elif cmd == 'vw':
                 pin = int(params.pop(0))
                 if pin in self._vr_pins:
                     self._vr_pins[pin].send_request(VrRequest(pin, VrRequest.WRITE, params))
                 else:
                     print("Warning: Virtual write to unregistered pin %d" % pin)
-        elif cmd == b'vr':
+        elif cmd == 'vr':
                 pin = int(params.pop(0))
                 if pin in self._vr_pins:
                     val = self._vr_pins[pin].send_request(VrRequest(pin, VrRequest.READ))
@@ -224,20 +256,20 @@ class Blynk:
                     val = 'Error'
                 self._send(self._format_msg(MSG_HW, 'vw', pin, val))
         elif self._pins_configured:
-            if cmd == b'dw':
-                pin = params.pop(0)
+            if cmd == 'dw':
+                pin = int(params.pop(0))
                 val = int(params.pop(0))
                 self._hw_pins[pin].digital_write(val)
-            elif cmd == b'aw':
-                pin = params.pop(0)
+            elif cmd == 'aw':
+                pin = int(params.pop(0))
                 val = int(params.pop(0))
                 self._hw_pins[pin].analog_write(val)
-            elif cmd == b'dr':
-                pin = params.pop(0)
+            elif cmd == 'dr':
+                pin = int(params.pop(0))
                 val = self._hw_pins[pin].digital_read()
                 self._send(self._format_msg(MSG_HW, 'dw', pin, val))
-            elif cmd == b'ar':
-                pin = params.pop(0)
+            elif cmd == 'ar':
+                pin = int(params.pop(0))
                 val = self._hw_pins[pin].analog_read()
                 self._send(self._format_msg(MSG_HW, 'aw', pin, val))
             else:
@@ -272,7 +304,7 @@ class Blynk:
         else:
             return b''
 
-    def _send(self, data, send_anyway = False):
+    def _send(self, data, send_anyway=False):
         if self._tx_count < MAX_MSG_PER_SEC or send_anyway:
             retries = 0
             while retries <= MAX_TX_RETRIES:
