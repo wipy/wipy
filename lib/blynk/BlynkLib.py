@@ -87,6 +87,7 @@ MSG_LOGIN = const(2)
 MSG_PING  = const(6)
 MSG_TWEET = const(12)
 MSG_EMAIL = const(13)
+MSG_NOTIFY = const(14)
 MSG_BRIDGE = const(15)
 MSG_HW = const(20)
 
@@ -348,6 +349,10 @@ class Blynk:
                 self._task_millis += self._task_period
                 self._task()
 
+    def notify(self, msg):
+        if self.state == AUTHENTICATED:
+            self._send(self._format_msg(MSG_NOTIFY, msg))
+
     def tweet(self, msg):
         if self.state == AUTHENTICATED:
             self._send(self._format_msg(MSG_TWEET, msg))
@@ -355,6 +360,10 @@ class Blynk:
     def email(self, to, subject, body):
         if self.state == AUTHENTICATED:
             self._send(self._format_msg(MSG_EMAIL, to, subject, body))
+
+    def virtual_write(self, pin, val): # TODO: *args?
+        if self.state == AUTHENTICATED:
+            self._send(self._format_msg(MSG_HW, 'vw', pin, val))
 
     def register_virtual_pin(self, pin):
         self._vr_pins[pin.pin] = pin
