@@ -360,8 +360,8 @@ class Blynk:
     def email(self, to, subject, body):
         if self.state == AUTHENTICATED:
             self._send(self._format_msg(MSG_EMAIL, to, subject, body))
-            
-    def virtualWrite(self, pin, val): # TODO: *args?
+
+    def virtual_write(self, pin, val): # TODO: *args?
         if self.state == AUTHENTICATED:
             self._send(self._format_msg(MSG_HW, 'vw', pin, val))
 
