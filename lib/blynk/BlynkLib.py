@@ -12,14 +12,21 @@ Example usage:
 
     blynk = BlynkLib.Blynk('08a46fbc7f57407995f576f3f84c3f72')
 
-    # to register virtual pins first define a handler
-    def v0_handler(request):
-        if request.type == BlynkLib.VrRequest.READ:
-            return time.ticks_ms() // 1000
+    # define a virtual pin read handler
+    def v0_read_handler():
+        # we must call virtual write in order to send the value to the widget
+        blynk.virtual_write(0, time.ticks_ms() // 1000)
 
-    # create the virtual pin and register it
-    vrpin = BlynkLib.VrPin(0, v0_handler)
-    blynk.register_virtual_pin(vrpin)
+    # register the virtual pin
+    blynk.add_virtual_pin(0, read=v0_read_handler)
+
+    # define a virtual pin write handler
+    def v1_write_handler(*args):
+        for arg in args:
+            print(arg)
+
+    # register the virtual pin
+    blynk.add_virtual_pin(1, write=v1_write_handler)
 
     # register the task running every 3 sec
     # (period must be a multiple of 50 ms)
@@ -27,17 +34,10 @@ Example usage:
         # do any non-blocking operations
         print("Action")
 
-    blynk.register_user_task(my_user_task, 3000)
+    blynk.set_user_task(my_user_task, 3000)
 
     # start Blynk (this call should never return)
     blynk.run()
-
-The `request` object passed to the virtual handler contains the
-following attributes:
-    - `pin` : the pin number as an integer
-    - `type`: can be either `VrRequest.READ` or `VrRequest.WRITE`
-    - `args`: the list of arguments passed to a virtual write. It's always
-              `None` in the case of a virtual read.
 
 -----------------------------------------------------------------------------
 
@@ -184,30 +184,10 @@ class HwPin:
         else:
             self._pwm.duty_cycle(value)
 
-class VrRequest:
-    READ = 0
-    WRITE = 1
-
-    def __init__(self, pin, type, args=None):
-        self.pin = pin
-        self.type = type
-        self.args = args
-
 class VrPin:
-    def __init__(self, pin, handler):
-        if isinstance(pin, int) and pin in range(0, MAX_VIRTUAL_PINS):
-            self.pin = pin
-            self._handler = handler
-        else:
-            raise ValueError('the pin must be an integer between 0 and %d' % (MAX_VIRTUAL_PINS - 1))
-
-    def send_request(self, request):
-        if request.pin == self.pin:
-            if self._handler:
-                return self._handler(request)
-        else:
-            raise ValueError('virtual {:} on pin {:} with pin {:} request'.
-                             format('read' if request.type == VrRequest.READ else 'write', request.pin, self.pin))
+    def __init__(self, read=None, write=None):
+        self.read = read
+        self.write = write
 
 class Blynk:
     def __init__(self, token, server='cloud.blynk.cc', port=8442, connect=True, enable_wdt=True):
@@ -243,19 +223,18 @@ class Blynk:
                 self._hw_pins[pin] = HwPin(pin, mode, mode)
             self._pins_configured = True
         elif cmd == 'vw':
-                pin = int(params.pop(0))
-                if pin in self._vr_pins:
-                    self._vr_pins[pin].send_request(VrRequest(pin, VrRequest.WRITE, params))
-                else:
-                    print("Warning: Virtual write to unregistered pin %d" % pin)
+            pin = int(params.pop(0))
+            if pin in self._vr_pins and self._vr_pins[pin].write:
+                self._vr_pins[pin].write(params)
+            else:
+                print("Warning: Virtual write to unregistered pin %d" % pin)
         elif cmd == 'vr':
-                pin = int(params.pop(0))
-                if pin in self._vr_pins:
-                    val = self._vr_pins[pin].send_request(VrRequest(pin, VrRequest.READ))
-                else:
-                    print("Warning: Virtual read from unregistered pin %d" % pin)
-                    val = 'Error'
-                self._send(self._format_msg(MSG_HW, 'vw', pin, val))
+            pin = int(params.pop(0))
+            if pin in self._vr_pins and self._vr_pins[pin].read:
+                self._vr_pins[pin].read()
+            else:
+                print("Warning: Virtual read from unregistered pin %d" % pin)
+                self._send(self._format_msg(MSG_HW, 'vw', pin, 'Error'))
         elif self._pins_configured:
             if cmd == 'dw':
                 pin = int(params.pop(0))
@@ -361,14 +340,17 @@ class Blynk:
         if self.state == AUTHENTICATED:
             self._send(self._format_msg(MSG_EMAIL, to, subject, body))
 
-    def virtual_write(self, pin, val): # TODO: *args?
+    def virtual_write(self, pin, val):
         if self.state == AUTHENTICATED:
             self._send(self._format_msg(MSG_HW, 'vw', pin, val))
 
-    def register_virtual_pin(self, pin):
-        self._vr_pins[pin.pin] = pin
+    def add_virtual_pin(self, pin, read=None, write=None):
+        if isinstance(pin, int) and pin in range(0, MAX_VIRTUAL_PINS):
+            self._vr_pins[pin] = VrPin(read, write)
+        else:
+            raise ValueError('the pin must be an integer between 0 and %d' % (MAX_VIRTUAL_PINS - 1))
 
-    def register_user_task(self, task, ms_period):
+    def set_user_task(self, task, ms_period):
         if ms_period % TASK_PERIOD_RES != 0:
             raise ValueError('the user task period must be a multiple of %d ms' % TASK_PERIOD_RES)
         self._task = task
