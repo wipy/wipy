@@ -190,7 +190,7 @@ class VrPin:
         self.write = write
 
 class Blynk:
-    def __init__(self, token, server='cloud.blynk.cc', port=8442, connect=True, enable_wdt=True):
+    def __init__(self, token, server='cloud.blynk.cc', port=None, connect=True, wdt=True, ssl=False):
         self._wdt = None
         self._vr_pins = {}
         self._do_connect = False
@@ -200,9 +200,15 @@ class Blynk:
         if isinstance (self._token, str):
             self._token = bytes(token, 'ascii')
         self._server = server
+        if port is None:
+            if ssl:
+                port = 8441
+            else:
+                port = 8442
         self._port = port
         self._do_connect = connect
-        self._wdt = enable_wdt
+        self._wdt = wdt
+        self._ssl = ssl
         self.state = DISCONNECTED
 
     def _format_msg(self, msg_type, *args):
@@ -384,8 +390,14 @@ class Blynk:
                     self._wdt.feed()
                 if self._do_connect:
                     try:
-                        print('Connecting to %s:%d' % (self._server, self._port))
-                        self.conn = socket.socket()
+                        if self._ssl:
+                            import ssl
+                            print('SSL: Connecting to %s:%d' % (self._server, self._port))
+                            ss = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_SEC)
+                            self.conn = ssl.wrap_socket(ss, cert_reqs=ssl.CERT_REQUIRED, ca_certs='/flash/cert/ca.pem')
+                        else:
+                            print('TCP: Connecting to %s:%d' % (self._server, self._port))
+                            self.conn = socket.socket()
                         self.state = CONNECTING
                         self.conn.connect(socket.getaddrinfo(self._server, self._port)[0][4])
                     except:
