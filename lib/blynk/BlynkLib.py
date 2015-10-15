@@ -21,9 +21,8 @@ Example usage:
     blynk.add_virtual_pin(0, read=v0_read_handler)
 
     # define a virtual pin write handler
-    def v1_write_handler(*args):
-        for arg in args:
-            print(arg)
+    def v1_write_handler(value):
+        print(value)
 
     # register the virtual pin
     blynk.add_virtual_pin(1, write=v1_write_handler)
@@ -32,7 +31,7 @@ Example usage:
     # (period must be a multiple of 50 ms)
     def my_user_task():
         # do any non-blocking operations
-        print("Action")
+        print('Action')
 
     blynk.set_user_task(my_user_task, 3000)
 
@@ -189,6 +188,31 @@ class VrPin:
         self.read = read
         self.write = write
 
+class Terminal:
+    def __init__(self, blynk, pin):
+        self._blynk = blynk
+        self._pin = pin
+
+    def write(self, data):
+        self._blynk.virtual_write(self._pin, data)
+
+    def read(self, size):
+        return ''
+
+    def virtual_read(self):
+        pass
+
+    def virtual_write(self, value):
+        try:
+            out = eval(value)
+            if out != None:
+                print(repr(out))
+        except:
+            try:
+                exec(value)
+            except Exception as e:
+                print('Exception:\n  ' + repr(e))
+
 class Blynk:
     def __init__(self, token, server='cloud.blynk.cc', port=None, connect=True, wdt=True, ssl=False):
         self._wdt = None
@@ -225,13 +249,14 @@ class Blynk:
             for (pin, mode) in pairs:
                 pin = int(pin)
                 if mode != 'in' and mode != 'out' and mode != 'pu' and mode != 'pd':
-                    raise ValueError("Unknown pin %s mode: %s" % (pin, mode))
+                    raise ValueError("Unknown pin %d mode: %s" % (pin, mode))
                 self._hw_pins[pin] = HwPin(pin, mode, mode)
             self._pins_configured = True
         elif cmd == 'vw':
             pin = int(params.pop(0))
             if pin in self._vr_pins and self._vr_pins[pin].write:
-                self._vr_pins[pin].write(params)
+                for param in params:
+                    self._vr_pins[pin].write(param)
             else:
                 print("Warning: Virtual write to unregistered pin %d" % pin)
         elif cmd == 'vr':
@@ -240,7 +265,6 @@ class Blynk:
                 self._vr_pins[pin].read()
             else:
                 print("Warning: Virtual read from unregistered pin %d" % pin)
-                self._send(self._format_msg(MSG_HW, 'vw', pin, 'Error'))
         elif self._pins_configured:
             if cmd == 'dw':
                 pin = int(params.pop(0))
@@ -334,6 +358,11 @@ class Blynk:
                 self._task_millis += self._task_period
                 self._task()
 
+    def repl(self, pin):
+        repl = Terminal(self, pin)
+        self.add_virtual_pin(pin, repl.virtual_read, repl.virtual_write)
+        return repl
+
     def notify(self, msg):
         if self.state == AUTHENTICATED:
             self._send(self._format_msg(MSG_NOTIFY, msg))
@@ -390,6 +419,7 @@ class Blynk:
                     self._wdt.feed()
                 if self._do_connect:
                     try:
+                        self.state = CONNECTING
                         if self._ssl:
                             import ssl
                             print('SSL: Connecting to %s:%d' % (self._server, self._port))
@@ -398,7 +428,6 @@ class Blynk:
                         else:
                             print('TCP: Connecting to %s:%d' % (self._server, self._port))
                             self.conn = socket.socket()
-                        self.state = CONNECTING
                         self.conn.connect(socket.getaddrinfo(self._server, self._port)[0][4])
                     except:
                         self._close('connection with the Blynk servers failed')
