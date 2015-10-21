@@ -1,70 +1,69 @@
 #!/usr/bin/env python3
 
-"""
-Micro Python library that brings out-of-the-box Blynk support to
-the WiPy. Requires a previously established internet connection
-and a valid token string.
+# Micro Python library that brings out-of-the-box Blynk support to
+# the WiPy. Requires a previously established internet connection
+# and a valid token string.
+# 
+# Example usage:
+# 
+#     import BlynkLib
+#     import time
+# 
+#     blynk = BlynkLib.Blynk('08a46fbc7f57407995f576f3f84c3f72')
+# 
+#     # define a virtual pin read handler
+#     def v0_read_handler():
+#         # we must call virtual write in order to send the value to the widget
+#         blynk.virtual_write(0, time.ticks_ms() // 1000)
+# 
+#     # register the virtual pin
+#     blynk.add_virtual_pin(0, read=v0_read_handler)
+# 
+#     # define a virtual pin write handler
+#     def v1_write_handler(value):
+#         print(value)
+# 
+#     # register the virtual pin
+#     blynk.add_virtual_pin(1, write=v1_write_handler)
+# 
+#     # register the task running every 3 sec
+#     # (period must be a multiple of 50 ms)
+#     def my_user_task():
+#         # do any non-blocking operations
+#         print('Action')
+# 
+#     blynk.set_user_task(my_user_task, 3000)
+# 
+#     # start Blynk (this call should never return)
+#     blynk.run()
+# 
+# -----------------------------------------------------------------------------
+# 
+# This file is part of the Micro Python project, http://micropython.org/
+# 
+# The MIT License (MIT)
+# 
+# Copyright (c) 2015 Daniel Campora
+# Copyright (c) 2015 Volodymyr Shymanskyy
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
 
-Example usage:
-
-    import BlynkLib
-    import time
-
-    blynk = BlynkLib.Blynk('08a46fbc7f57407995f576f3f84c3f72')
-
-    # define a virtual pin read handler
-    def v0_read_handler():
-        # we must call virtual write in order to send the value to the widget
-        blynk.virtual_write(0, time.ticks_ms() // 1000)
-
-    # register the virtual pin
-    blynk.add_virtual_pin(0, read=v0_read_handler)
-
-    # define a virtual pin write handler
-    def v1_write_handler(value):
-        print(value)
-
-    # register the virtual pin
-    blynk.add_virtual_pin(1, write=v1_write_handler)
-
-    # register the task running every 3 sec
-    # (period must be a multiple of 50 ms)
-    def my_user_task():
-        # do any non-blocking operations
-        print('Action')
-
-    blynk.set_user_task(my_user_task, 3000)
-
-    # start Blynk (this call should never return)
-    blynk.run()
-
------------------------------------------------------------------------------
-
-This file is part of the Micro Python project, http://micropython.org/
-
-The MIT License (MIT)
-
-Copyright (c) 2015 Daniel Campora
-Copyright (c) 2015 Volodymyr Shymanskyy
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-"""
 
 import socket
 import struct
