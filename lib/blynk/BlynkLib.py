@@ -75,6 +75,10 @@ try:
 except ImportError:
     import MachineStub as machine
     const = lambda x: x
+try:
+    import wipy
+except ImportError:
+    import WiPyStub as wipy
 
 HDR_LEN = const(5)
 HDR_FMT = "!BHH"
@@ -138,7 +142,7 @@ class HwPin:
         pin_num = int(pin_num)
         self._name = 'GP' + str(pin_num)
         if pin_num == HwPin._HBPin:
-            machine.HeartBeat().disable()
+            wipy.heartbeat(False)
 
     def _config(self, duty_cycle=0):
         if self._function == 'dig':
