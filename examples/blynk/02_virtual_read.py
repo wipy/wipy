@@ -48,7 +48,7 @@ def v2_read_handler():
     blynk.virtual_write(2, time.ticks_ms() // 1000)
 
 # attach virtual pin 0 to our handler
-blynk.add_virtual_pin(2, read=v0_read_handler)
+blynk.add_virtual_pin(2, read=v2_read_handler)
 
 # start Blynk (this call should never return)
 blynk.run()
