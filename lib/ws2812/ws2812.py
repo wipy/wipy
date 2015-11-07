@@ -26,7 +26,8 @@ from machine import enable_irq
 
 class WS2812:
     # values to put inside the SPI register for each bit of color
-    bits = (0xE0, 0xFC)
+    bits = (bytearray((0xE0, 0xE0)), bytearray((0xFC, 0xE0)),
+            bytearray((0xE0, 0xFC)), bytearray((0xFC, 0xFC)))
 
     def __init__(self, nleds=1, brightness=100):
         """
@@ -57,7 +58,7 @@ class WS2812:
         """
         show RGB data on the LEDs. Expected data = [(R, G, B), ...] where R, G and B
         are intensities of colors in the range 0 to 255.
-        The number of tuples may be less than the number of connected LEDs.
+        the number of tuples may be less than the number of connected LEDs.
         """
         self.fill(data)
         self._send()
@@ -72,10 +73,10 @@ class WS2812:
         brightness = self.brightness
         idx = start * 24
         for colors in data:
-            for c in (1, 0, 2): # the WS2812 requires GRB
-                color = colors[c] * brightness // 100
-                for bit in range (0, 8):
-                    buf[idx + bit] = bits[color >> (7 - bit) & 0x01]
+            for x in (1, 0, 2): # the WS2812 requires GRB
+                color = colors[x] * brightness // 100
+                for bit in range (0, 6, 2):
+                    buf[idx + bit:idx + bit + 2] = bits[color >> (6 - bit) & 0x03]
                 idx += 8
         return idx // 24
 
@@ -87,8 +88,8 @@ class WS2812:
         end = self.update(data)
         buf = self.buf
         off = self.bits[0]
-        for idx in range(end * 24, len(self.buf)):
-            buf[idx] = off
+        for idx in range(end * 24, len(self.buf), 2):
+            buf[idx:idx + 2] = off
 
     def brightness(self, brightness=None):
         """
