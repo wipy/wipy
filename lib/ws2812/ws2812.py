@@ -29,13 +29,11 @@ class WS2812:
     bits = (bytearray((0xE0, 0xE0)), bytearray((0xFC, 0xE0)),
             bytearray((0xE0, 0xFC)), bytearray((0xFC, 0xFC)))
 
-    def __init__(self, nleds=1, brightness=100):
+    def __init__(self, nleds=1):
         """
         params:
             * nleds = number of LEDs
-            * brightness = light brightness (integer: 0 to 100)
         """
-        self.brightness = brightness
         self.buf = bytearray(nleds * 3 * 8)  # 1 byte per bit
         # spi init
         # bus 0, 8MHz => 125 ns by bit, each transfer is the cycles long due to the CC3200
@@ -70,13 +68,11 @@ class WS2812:
         """
         buf = self.buf
         bits = self.bits
-        brightness = self.brightness
         idx = start * 24
         for colors in data:
             for x in (1, 0, 2): # the WS2812 requires GRB
-                color = colors[x] * brightness // 100
                 for bit in range (0, 6, 2):
-                    buf[idx + bit:idx + bit + 2] = bits[color >> (6 - bit) & 0x03]
+                    buf[idx + bit:idx + bit + 2] = bits[colors[x] >> (6 - bit) & 0x03]
                 idx += 8
         return idx // 24
 
@@ -90,12 +86,3 @@ class WS2812:
         off = self.bits[0]
         for idx in range(end * 24, len(self.buf), 2):
             buf[idx:idx + 2] = off
-
-    def brightness(self, brightness=None):
-        """
-        get or set the brighness of all the leds
-        """
-        if brightness != None:
-            self.brightness = brightness
-        else:
-            return self.brightness
