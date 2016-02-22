@@ -159,7 +159,7 @@ class HwPin:
         else:
             machine.Pin(self._name, mode=machine.Pin.ALT, pull=None, drive=machine.Pin.MED_POWER, alt=HwPin._PWMMap[self._name])
             timer = machine.Timer(HwPin._TimerMap[self._name][0], mode=machine.Timer.PWM)
-            self._pwm = timer.channel(HwPin._TimerMap[self._name][1], freq=20000, duty_cycle=duty_cycle)
+            self._pwm = timer.channel(HwPin._TimerMap[self._name][1], freq=20000, duty_cycle=(duty_cycle * 100))
 
     def digital_read(self):
         if self._function != 'dig':
