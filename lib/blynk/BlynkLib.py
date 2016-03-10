@@ -122,12 +122,11 @@ def sleep_from_until (start, delay):
     return start + delay
 
 class HwPin:
-    _PWMMap = {'GP9': 3, 'GP10': 3, 'GP11': 3, 'GP24': 5, 'GP25': 9}
-    _TimerMap = { 'GP9': (3, machine.Timer.B),
-                 'GP10': (4, machine.Timer.A),
-                 'GP11': (4, machine.Timer.B),
-                 'GP24': (1, machine.Timer.A),
-                 'GP25': (2, machine.Timer.A)}
+    _TimerMap = { 'GP9': (2, machine.Timer.B),
+                 'GP10': (3, machine.Timer.A),
+                 'GP11': (3, machine.Timer.B),
+                 'GP24': (0, machine.Timer.A),
+                 'GP25': (1, machine.Timer.A)}
 
     _HBPin = 25 if 'WiPy' in os.uname().machine else 9
 
@@ -157,7 +156,6 @@ class HwPin:
             adc = machine.ADC(bits=12)
             self._apin = adc.channel(pin=self._name)
         else:
-            machine.Pin(self._name, mode=machine.Pin.ALT, pull=None, drive=machine.Pin.MED_POWER, alt=HwPin._PWMMap[self._name])
             timer = machine.Timer(HwPin._TimerMap[self._name][0], mode=machine.Timer.PWM)
             self._pwm = timer.channel(HwPin._TimerMap[self._name][1], freq=20000, duty_cycle=(duty_cycle * 100))
 
@@ -182,9 +180,9 @@ class HwPin:
     def analog_write(self, value):
         if self._function != 'pwm':
             self._function = 'pwm'
-            self._config(value)
+            self._config(value * 100)
         else:
-            self._pwm.duty_cycle(value)
+            self._pwm.duty_cycle(value * 100)
 
 class VrPin:
     def __init__(self, read=None, write=None):
