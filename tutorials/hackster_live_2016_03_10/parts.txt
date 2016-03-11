@@ -1,0 +1,13 @@
+What we need:
+
+- 1x WiPy
+- 1x Expanion board
+- 1x DS18B20 temperature sensor
+- 1x 4k7 ohm resistor
+- 1x BH1750FVI ambient light sensor
+- 1x Small breadboard
+- Bread board compatible cables.
+- A tablet or smartphone with the Blynk App installed.
+- Internet acces via WiFi for the WiPy.
+
+
