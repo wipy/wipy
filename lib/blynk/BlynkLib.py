@@ -215,7 +215,7 @@ class Terminal:
                 print('Exception:\n  ' + repr(e))
 
 class Blynk:
-    def __init__(self, token, server='cloud.blynk.cc', port=None, connect=True, wdt=True, ssl=False):
+    def __init__(self, token, server='blynk-cloud.com', port=None, connect=True, wdt=True, ssl=False):
         self._wdt = None
         self._vr_pins = {}
         self._do_connect = False
