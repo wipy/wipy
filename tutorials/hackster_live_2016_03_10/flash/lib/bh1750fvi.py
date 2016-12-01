@@ -11,7 +11,7 @@ class BH1750FVI:
         self.addr = addr
         self.time = 0
         self.value = 0
-        self.i2c.writeto(addr, 0x10) # start continuos 1 Lux readings every 120ms
+        self.i2c.writeto(addr, bytes([0x10])) # start continuos 1 Lux readings every 120ms
 
     def read(self):
         self.time += self.period
