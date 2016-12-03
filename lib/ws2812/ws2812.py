@@ -26,8 +26,8 @@ from machine import enable_irq
 
 class WS2812:
     # values to put inside the SPI register for each bit of color
-    bits = (bytearray((0xE0, 0xE0)), bytearray((0xFC, 0xE0)),
-            bytearray((0xE0, 0xFC)), bytearray((0xFC, 0xFC)))
+    bits = (bytearray((0xE0, 0xE0)), bytearray((0xE0, 0xFC)),
+            bytearray((0xFC, 0xE0)), bytearray((0xFC, 0xFC)))
 
     def __init__(self, nleds=1):
         """
