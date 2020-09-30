@@ -28,3 +28,4 @@ To build:
 
     $ cd cc3200
     $ make BTARGET=application BTYPE=release BOARD=WIPY
+Thank You For Visiting Happy Coding.
